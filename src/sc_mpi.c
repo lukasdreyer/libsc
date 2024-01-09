@@ -691,6 +691,8 @@ sc_mpi_sizeof (sc_MPI_Datatype t)
     return sizeof (short);
   if (t == sc_MPI_INT || t == sc_MPI_UNSIGNED)
     return sizeof (int);
+  if (t == sc_MPI_INT8_T)
+    return sizeof (int8_t);
   if (t == sc_MPI_LONG || t == sc_MPI_UNSIGNED_LONG)
     return sizeof (long);
   if (t == sc_MPI_LONG_LONG_INT)
@@ -916,4 +918,35 @@ sc_mpi_comm_get_and_attach (sc_MPI_Comm mpicomm)
   }
 
   return intrasize;
+}
+
+int sc_MPI_Pack(const void *inbuf, int incount, sc_MPI_Datatype datatype,
+     void *outbuf, int outsize, int *position, sc_MPI_Comm comm)
+{
+  int size;
+  sc_MPI_Pack_size(incount, datatype, comm, &size);
+  if(*position + size > outsize) return sc_MPI_ERR_NO_SPACE;
+  char *char_outbuf = (char*) outbuf;
+  memcpy(char_outbuf + *position, inbuf, size);
+  *position += size;
+  return 0;
+}
+
+int sc_MPI_Unpack(const void *inbuf, int insize, int *position,
+     void *outbuf, int outcount, sc_MPI_Datatype datatype,
+     sc_MPI_Comm comm)
+{
+  int size;
+  sc_MPI_Pack_size(outcount, datatype, comm, &size);
+  if(*position + size > insize) return sc_MPI_ERR_NO_SPACE;
+  char *char_inbuf = (char*) inbuf;
+  memcpy(outbuf, char_inbuf + *position, size);
+  *position += size;
+  return 0;
+}
+
+int sc_MPI_Pack_size(int incount, sc_MPI_Datatype datatype, sc_MPI_Comm comm,
+     int *size)
+{
+  return incount * sc_MPI_Type_size(datatype, size);
 }
